@@ -1,0 +1,58 @@
+.customer-page{
+    display:flex;
+    flex-direction:column;
+    gap:25px;
+}
+
+.customer-header{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.customer-header h1{
+    margin:0;
+    font-size:34px;
+}
+
+.customer-header p{
+    color:#777;
+    margin-top:6px;
+}
+
+.add-btn{
+    background:#2563eb;
+    color:white;
+    border:none;
+    padding:12px 22px;
+    border-radius:10px;
+    cursor:pointer;
+    font-size:15px;
+    font-weight:600;
+    transition:.25s;
+}
+
+.add-btn:hover{
+    background:#1d4ed8;
+}
+
+.customer-toolbar{
+    display:flex;
+    justify-content:space-between;
+    align-items:center;
+}
+
+.search-input{
+    width:350px;
+    padding:12px;
+    border-radius:10px;
+    border:1px solid #ddd;
+    font-size:15px;
+}
+
+.customer-card{
+    background:white;
+    border-radius:15px;
+    padding:20px;
+    box-shadow:0 10px 30px rgba(0,0,0,.06);
+}
