@@ -1,102 +1,132 @@
 import { NavLink } from "react-router-dom";
 
-import {
-  FaHome,
-  FaUserFriends,
-  FaDog,
-  FaSyringe,
-  FaCalendarAlt,
-  FaStethoscope,
-  FaBoxes,
-  FaChartBar,
-  FaCog,
-} from "react-icons/fa";
+import HomeOutlinedIcon from "@mui/icons-material/HomeOutlined";
+import PeopleAltOutlinedIcon from "@mui/icons-material/PeopleAltOutlined";
+import PetsOutlinedIcon from "@mui/icons-material/PetsOutlined";
+import MedicalServicesOutlinedIcon from "@mui/icons-material/MedicalServicesOutlined";
+import VaccinesOutlinedIcon from "@mui/icons-material/VaccinesOutlined";
+import EventOutlinedIcon from "@mui/icons-material/EventOutlined";
+import NotificationsActiveOutlinedIcon from "@mui/icons-material/NotificationsActiveOutlined";
+import HistoryOutlinedIcon from "@mui/icons-material/HistoryOutlined";
+import Inventory2OutlinedIcon from "@mui/icons-material/Inventory2Outlined";
+import ReceiptLongOutlinedIcon from "@mui/icons-material/ReceiptLongOutlined";
+import MedicationIcon from "@mui/icons-material/Medication";
+import AccountBalanceWalletOutlinedIcon from "@mui/icons-material/AccountBalanceWalletOutlined";
+import AssessmentOutlinedIcon from "@mui/icons-material/AssessmentOutlined";
+import SettingsOutlinedIcon from "@mui/icons-material/SettingsOutlined";
+import PetsIcon from "@mui/icons-material/Pets";
+
+import { useAuth } from "../../hooks/useAuth";
+import { getAllowedRoles } from "../../utils/roles";
 
 import "../../styles/sidebar.css";
 
 function Sidebar() {
+  const { user, hasRole } = useAuth();
+
   const menuItems = [
-    {
-      path: "/",
-      text: "Dashboard",
-      icon: <FaHome />,
-    },
+    { path: "/", text: "Dashboard", icon: <HomeOutlinedIcon fontSize="small" /> },
     {
       path: "/musteriler",
       text: "Müşteriler",
-      icon: <FaUserFriends />,
+      icon: <PeopleAltOutlinedIcon fontSize="small" />,
     },
     {
       path: "/hayvanlar",
       text: "Hayvanlar",
-      icon: <FaDog />,
+      icon: <PetsOutlinedIcon fontSize="small" />,
     },
     {
       path: "/muayeneler",
       text: "Muayeneler",
-      icon: <FaStethoscope />,
+      icon: <MedicalServicesOutlinedIcon fontSize="small" />,
     },
     {
       path: "/asilar",
       text: "Aşılar",
-      icon: <FaSyringe />,
+      icon: <VaccinesOutlinedIcon fontSize="small" />,
     },
     {
       path: "/randevular",
       text: "Randevular",
-      icon: <FaCalendarAlt />,
+      icon: <EventOutlinedIcon fontSize="small" />,
+    },
+    {
+      path: "/hatirlatmalar",
+      text: "Hatırlatmalar",
+      icon: <NotificationsActiveOutlinedIcon fontSize="small" />,
+    },
+    {
+      path: "/aktivite",
+      text: "Aktivite Geçmişi",
+      icon: <HistoryOutlinedIcon fontSize="small" />,
     },
     {
       path: "/stok",
       text: "Stok",
-      icon: <FaBoxes />,
+      icon: <Inventory2OutlinedIcon fontSize="small" />,
+    },
+    {
+      path: "/receteler",
+      text: "Reçeteler",
+      icon: <MedicationIcon fontSize="small" />,
+    },
+    {
+      path: "/faturalar",
+      text: "Faturalar",
+      icon: <ReceiptLongOutlinedIcon fontSize="small" />,
+    },
+    {
+      path: "/finans",
+      text: "Finans",
+      icon: <AccountBalanceWalletOutlinedIcon fontSize="small" />,
     },
     {
       path: "/raporlar",
       text: "Raporlar",
-      icon: <FaChartBar />,
+      icon: <AssessmentOutlinedIcon fontSize="small" />,
     },
     {
       path: "/ayarlar",
       text: "Ayarlar",
-      icon: <FaCog />,
+      icon: <SettingsOutlinedIcon fontSize="small" />,
     },
   ];
 
+  const visibleMenuItems = menuItems.filter((item) =>
+    hasRole(getAllowedRoles(item.path))
+  );
+
   return (
     <aside className="sidebar">
-
       <div className="logo">
-        🐾 <span>VetSys</span>
+        <PetsIcon fontSize="medium" />
+        <span>VetSys</span>
       </div>
 
       <nav className="sidebar-menu">
-
-        {menuItems.map((item) => (
+        {visibleMenuItems.map((item) => (
           <NavLink
             key={item.path}
             to={item.path}
             end={item.path === "/"}
             className={({ isActive }) =>
-              isActive
-                ? "menu-item active"
-                : "menu-item"
+              isActive ? "menu-item active" : "menu-item"
             }
+            title={item.text}
           >
-            <span className="menu-icon">
-              {item.icon}
-            </span>
-
+            <span className="menu-icon">{item.icon}</span>
             <span>{item.text}</span>
           </NavLink>
         ))}
-
       </nav>
 
       <div className="sidebar-footer">
+        <small>
+          {user?.role ? `${user.role} olarak giriş yaptınız` : ""}
+        </small>
         <small>VetSys v1.0.0</small>
       </div>
-
     </aside>
   );
 }

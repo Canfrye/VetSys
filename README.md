@@ -89,9 +89,11 @@ Screenshots will be added soon.
 
 ## 👨‍💻 Developer
 
-Developed by **Can Miquella**
+Developed by **Can Doğruyol**
 
-Industrial Engineering Student | React Developer
+Industrial Engineering Student at Erciyes University
+
+GitHub: https://github.com/Canfrye
 
 ## 📄 License
 

@@ -17,6 +17,13 @@ import VisibilityIcon from "@mui/icons-material/Visibility";
 import PhoneIcon from "@mui/icons-material/Phone";
 import EmailIcon from "@mui/icons-material/Email";
 
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
+
 function CustomerTable({
   customers = [],
   onDelete,
@@ -47,31 +54,22 @@ function CustomerTable({
       field: "adSoyad",
       headerName: "Müşteri",
       flex: 1.2,
-      minWidth: 260,
+      minWidth: 180,
 
       renderCell: (params) => (
         <Stack
           direction="row"
           spacing={2}
           alignItems="center"
-          sx={{ height: "100%" }}
+          sx={{ height: "100%", minWidth: 0, width: "100%" }}
         >
           <Avatar>
             {params.row.ad?.charAt(0).toUpperCase()}
           </Avatar>
 
-          <Box>
-            <Typography fontWeight={600}>
-              {params.row.adSoyad}
-            </Typography>
-
-            <Typography
-              variant="caption"
-              color="text.secondary"
-            >
-              ID : {params.row.id}
-            </Typography>
-          </Box>
+          <Typography fontWeight={600} noWrap title={params.row.adSoyad}>
+            {params.row.adSoyad}
+          </Typography>
         </Stack>
       ),
     },
@@ -104,14 +102,14 @@ function CustomerTable({
       field: "email",
       headerName: "E-Posta",
       flex: 1,
-      minWidth: 260,
+      minWidth: 180,
 
       renderCell: (params) => (
         <Stack
           direction="row"
           spacing={1}
           alignItems="center"
-          sx={{ height: "100%" }}
+          sx={{ height: "100%", minWidth: 0, width: "100%" }}
         >
           <EmailIcon
             fontSize="small"
@@ -120,6 +118,7 @@ function CustomerTable({
 
           <Typography
             noWrap
+            title={params.value}
             sx={{ width: "100%" }}
           >
             {params.value}
@@ -148,7 +147,7 @@ function CustomerTable({
       field: "actions",
       headerName: "İşlemler",
 
-      width: 170,
+      width: 160,
 
       sortable: false,
       filterable: false,
@@ -157,37 +156,40 @@ function CustomerTable({
         <>
           <Tooltip title="Detayı Gör">
             <IconButton
+              size="small"
               color="info"
               onClick={(e) => {
                 e.stopPropagation();
                 navigate(`/musteriler/${params.row.id}`);
               }}
             >
-              <VisibilityIcon />
+              <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Düzenle">
             <IconButton
+              size="small"
               color="primary"
               onClick={(e) => {
                 e.stopPropagation();
                 onEdit(params.row.raw);
               }}
             >
-              <EditIcon />
+              <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Sil">
             <IconButton
+              size="small"
               color="error"
               onClick={(e) => {
                 e.stopPropagation();
                 onDelete(params.row.id);
               }}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </>
@@ -199,14 +201,14 @@ function CustomerTable({
     <Box
       sx={{
         width: "100%",
-        height: 560,
+        height: DATA_GRID_HEIGHT,
       }}
     >
       <DataGrid
         rows={rows}
         columns={columns}
         disableRowSelectionOnClick
-        pageSizeOptions={[5, 10, 25, 50]}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
         initialState={{
           sorting: {
             sortModel: [
@@ -216,31 +218,12 @@ function CustomerTable({
               },
             ],
           },
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
+          ...DATA_GRID_INITIAL_PAGINATION,
         }}
         onRowClick={(params) =>
           navigate(`/musteriler/${params.id}`)
         }
-        sx={{
-          border: 0,
-
-          "& .MuiDataGrid-columnHeaders": {
-            backgroundColor: "#f8fafc",
-            fontWeight: "bold",
-          },
-
-          "& .MuiDataGrid-row:nth-of-type(even)": {
-            backgroundColor: "#fafafa",
-          },
-
-          "& .MuiDataGrid-row:hover": {
-            backgroundColor: "#eef6ff",
-          },
-        }}
+        sx={dataGridSx}
       />
     </Box>
   );

@@ -11,6 +11,16 @@ node_modules
 dist
 dist-ssr
 *.local
+.env
+.env.*
+!.env.example
+
+# Electron
+*.exe
+*.dmg
+*.AppImage
+out/
+release/
 
 # Editor directories and files
 .vscode/*

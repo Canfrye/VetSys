@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Box,
@@ -6,6 +6,8 @@ import {
   Grid,
   TextField,
 } from "@mui/material";
+
+import { useNotification } from "../../hooks/useNotification";
 
 function CustomerForm({
   customer,
@@ -22,15 +24,13 @@ function CustomerForm({
     not: "",
   };
 
-  const [form, setForm] = useState(emptyForm);
+  const { notify } = useNotification();
 
-  useEffect(() => {
-    if (customer) {
-      setForm(customer);
-    } else {
-      setForm(emptyForm);
-    }
-  }, [customer]);
+  // NOT: `customer` değiştiğinde formu resetlemek için useEffect yerine
+  // "derived state" deseni kullanılıyor. Üst bileşen (Musteriler.jsx),
+  // düzenlenen müşteri değiştiğinde bu bileşeni `key` prop'u ile yeniden
+  // mount eder; bu yüzden lazy initializer yeterlidir.
+  const [form, setForm] = useState(() => (customer ? customer : emptyForm));
 
   function handleChange(e) {
     setForm((prev) => ({
@@ -43,17 +43,17 @@ function CustomerForm({
     e.preventDefault();
 
     if (!form.ad.trim()) {
-      alert("Ad zorunludur.");
+      notify("Ad zorunludur.", "error");
       return;
     }
 
     if (!form.soyad.trim()) {
-      alert("Soyad zorunludur.");
+      notify("Soyad zorunludur.", "error");
       return;
     }
 
     if (!form.telefon.trim()) {
-      alert("Telefon zorunludur.");
+      notify("Telefon zorunludur.", "error");
       return;
     }
 

@@ -1,66 +1,47 @@
-import {
-  Chart as ChartJS,
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip,
-} from "chart.js";
+import { useEffect, useState } from "react";
 
-import { Bar } from "react-chartjs-2";
-
+import BarChart from "./BarChart";
 import { getCustomers } from "../../services/customerService";
 
-ChartJS.register(
-  CategoryScale,
-  LinearScale,
-  BarElement,
-  Tooltip
-);
+const MONTHS = [
+  "Ocak",
+  "Şubat",
+  "Mart",
+  "Nisan",
+  "Mayıs",
+  "Haziran",
+  "Temmuz",
+  "Ağustos",
+  "Eylül",
+  "Ekim",
+  "Kasım",
+  "Aralık",
+];
 
 function CustomerGrowthChart() {
+  const [values, setValues] = useState(Array(12).fill(0));
 
-  const months = [
-    "Ocak",
-    "Şubat",
-    "Mart",
-    "Nisan",
-    "Mayıs",
-    "Haziran",
-    "Temmuz",
-    "Ağustos",
-    "Eylül",
-    "Ekim",
-    "Kasım",
-    "Aralık",
-  ];
+  useEffect(() => {
+    getCustomers().then((customers) => {
+      const monthlyValues = Array(12).fill(0);
 
-  const values = Array(12).fill(0);
+      customers.forEach((customer) => {
+        if (!customer.createdAt) return;
 
-  getCustomers().forEach((customer) => {
+        const month = new Date(customer.createdAt).getMonth();
 
-    if (!customer.createdAt) return;
+        monthlyValues[month]++;
+      });
 
-    const month = new Date(
-      customer.createdAt
-    ).getMonth();
-
-    values[month]++;
-
-  });
+      setValues(monthlyValues);
+    });
+  }, []);
 
   return (
-    <Bar
-      data={{
-        labels: months,
-
-        datasets: [
-          {
-            label: "Yeni Müşteri",
-
-            data: values,
-          },
-        ],
-      }}
+    <BarChart
+      labels={MONTHS}
+      data={values}
+      datasetLabel="Yeni Müşteri"
     />
   );
 }

@@ -12,9 +12,11 @@ function CustomerInfoCard({ customer }) {
       <CardContent>
 
         <Typography
-          variant="h5"
+          variant="h6"
           fontWeight="bold"
           gutterBottom
+          noWrap
+          title={`${customer.ad} ${customer.soyad}`}
         >
           {customer.ad} {customer.soyad}
         </Typography>

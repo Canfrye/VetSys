@@ -1,10 +1,16 @@
 import { DataGrid } from "@mui/x-data-grid";
-import { Box, IconButton } from "@mui/material";
+import { Box, IconButton, Typography } from "@mui/material";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
-import { useNavigate } from "react-router-dom";
+
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
 
 function OwnerAnimalsTable({
   animals,
@@ -17,6 +23,11 @@ function OwnerAnimalsTable({
       field: "name",
       headerName: "Hayvan",
       flex: 1,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "species",
@@ -48,24 +59,27 @@ function OwnerAnimalsTable({
       renderCell: (params) => (
         <>
           <IconButton
-            color="primary"
+            size="small"
+            color="info"
             onClick={() => onView(params.row.id)}
           >
-            <VisibilityIcon />
+            <VisibilityIcon fontSize="small" />
           </IconButton>
 
           <IconButton
-            color="warning"
+            size="small"
+            color="primary"
             onClick={() => onEdit(params.row)}
           >
-            <EditIcon />
+            <EditIcon fontSize="small" />
           </IconButton>
 
           <IconButton
+            size="small"
             color="error"
             onClick={() => onDelete(params.row.id)}
           >
-            <DeleteIcon />
+            <DeleteIcon fontSize="small" />
           </IconButton>
         </>
       ),
@@ -73,19 +87,14 @@ function OwnerAnimalsTable({
   ];
 
   return (
-    <Box sx={{ height: 500 }}>
+    <Box sx={{ height: DATA_GRID_HEIGHT }}>
       <DataGrid
         rows={animals}
         columns={columns}
         disableRowSelectionOnClick
-        pageSizeOptions={[5, 10]}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 5,
-            },
-          },
-        }}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
+        initialState={DATA_GRID_INITIAL_PAGINATION}
+        sx={dataGridSx}
       />
     </Box>
   );

@@ -4,11 +4,20 @@ import {
   Chip,
   IconButton,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+
+import { getAppointmentStatusColor } from "../../utils/appointmentStatus";
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
 
 function AppointmentTable({
   appointments = [],
@@ -21,25 +30,6 @@ function AppointmentTable({
     ...appointment,
     id: appointment.id,
   }));
-
-  const getStatusColor = (status) => {
-    switch (status) {
-      case "Bekliyor":
-        return "warning";
-
-      case "Geldi":
-        return "info";
-
-      case "Tamamlandı":
-        return "success";
-
-      case "İptal":
-        return "error";
-
-      default:
-        return "default";
-    }
-  };
 
   const columns = [
     {
@@ -57,18 +47,33 @@ function AppointmentTable({
       headerName: "Hayvan",
       flex: 1,
       minWidth: 150,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "ownerName",
       headerName: "Sahibi",
       flex: 1,
       minWidth: 180,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "reason",
       headerName: "Randevu Nedeni",
       flex: 1,
-      minWidth: 220,
+      minWidth: 180,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "veterinarian",
@@ -82,7 +87,7 @@ function AppointmentTable({
       renderCell: (params) => (
         <Chip
           label={params.value}
-          color={getStatusColor(params.value)}
+          color={getAppointmentStatusColor(params.value)}
           size="small"
         />
       ),
@@ -90,7 +95,7 @@ function AppointmentTable({
     {
       field: "actions",
       headerName: "İşlemler",
-      width: 120,
+      width: 140,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -104,7 +109,7 @@ function AppointmentTable({
                 onEdit?.(params.row);
               }}
             >
-              <EditIcon />
+              <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
@@ -117,7 +122,7 @@ function AppointmentTable({
                 onDelete?.(params.row.id);
               }}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </>
@@ -126,23 +131,18 @@ function AppointmentTable({
   ];
 
   return (
-    <Box sx={{ height: 600, width: "100%" }}>
+    <Box sx={{ height: DATA_GRID_HEIGHT, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
         density="comfortable"
         disableRowSelectionOnClick
-        pageSizeOptions={[5, 10, 20]}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
-        }}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
+        initialState={DATA_GRID_INITIAL_PAGINATION}
         onRowDoubleClick={(params) =>
           navigate(`/hayvanlar/${params.row.animalId}`)
         }
+        sx={dataGridSx}
       />
     </Box>
   );

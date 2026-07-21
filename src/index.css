@@ -5,8 +5,9 @@
 }
 
 body {
-  font-family: Arial, Helvetica, sans-serif;
-  background: #f3f4f6;
+  font-family: Inter, Arial, Helvetica, sans-serif;
+  background: #f4f7fb;
+  color: #111827;
 }
 
 a {
@@ -16,4 +17,30 @@ a {
 
 #root {
   min-height: 100vh;
+}
+
+/* Uzun metin taşmalarını engellemek için yardımcı sınıf */
+.text-ellipsis {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+  max-width: 100%;
+}
+
+/*
+ * Yazdırma / Electron print: Türkçe karakter destekli font yığını.
+ * Inter (web) + Segoe UI (Windows) + sistem sans-serif yedekleri.
+ */
+@media print {
+  body {
+    font-family: Inter, "Segoe UI", Roboto, Arial, "Helvetica Neue", sans-serif;
+    color: #000;
+    background: #fff;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  a {
+    text-decoration: none;
+  }
 }

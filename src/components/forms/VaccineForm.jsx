@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Box,
   Button,
@@ -6,6 +6,24 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
+
+import SearchableAutocomplete from "../SearchableAutocomplete";
+import { useNotification } from "../../hooks/useNotification";
+import { todayDateOnly } from "../../utils/dateRange";
+import { getStock } from "../../services/stockService";
+import { getSettings } from "../../services/settingsService";
+import { getServiceDefaultPrice } from "../../utils/serviceCatalog";
+import { resolveStockSalePrice } from "../../utils/invoiceDraft";
+import {
+  DEFAULT_VACCINE_NAMES,
+  mergeSuggestionLists,
+  rememberRecentValue,
+} from "../../utils/selectionMemory";
+
+function animalLabel(animal) {
+  if (!animal) return "";
+  return `${animal.name || ""} - ${animal.ownerName || ""}`.trim();
+}
 
 function VaccineForm({
   vaccine,
@@ -24,43 +42,123 @@ function VaccineForm({
     batchNo: "",
     dose: "",
 
-    applicationDate: new Date()
-      .toISOString()
-      .substring(0, 10),
+    applicationDate: todayDateOnly(),
 
     nextDoseDate: "",
+
+    fee: "",
+    feeSource: "",
+
+    status: "Tamamlandı",
 
     veterinarian: "",
 
     notes: "",
   };
 
-  const [form, setForm] = useState(emptyForm);
+  const { notify } = useNotification();
+
+  const [form, setForm] = useState(() =>
+    vaccine
+      ? {
+          ...emptyForm,
+          ...vaccine,
+          fee:
+            vaccine.fee != null && vaccine.fee !== ""
+              ? vaccine.fee
+              : "",
+          feeSource: vaccine.feeSource || "",
+        }
+      : emptyForm
+  );
+
+  const [stockItems, setStockItems] = useState([]);
+  const [serviceFees, setServiceFees] = useState([]);
+  const [recentVaccines, setRecentVaccines] = useState([]);
+  const [recentVets, setRecentVets] = useState([]);
+  const [clinicVet, setClinicVet] = useState("");
 
   useEffect(() => {
-    if (vaccine) {
-      setForm(vaccine);
-    } else {
-      setForm(emptyForm);
+    let cancelled = false;
+
+    Promise.all([getStock(), getSettings()]).then(([stock, settings]) => {
+      if (cancelled) return;
+      setStockItems(stock);
+      setServiceFees(settings.serviceFees || []);
+      setRecentVaccines(settings.recentSelections?.vaccines || []);
+      setRecentVets(settings.recentSelections?.veterinarians || []);
+      setClinicVet(settings.veterinarian || "");
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const vaccineOptions = useMemo(() => {
+    const fromStock = stockItems
+      .filter((s) =>
+        String(s.category || "")
+          .toLocaleLowerCase("tr")
+          .includes("aşı")
+      )
+      .map((s) => s.name);
+
+    return mergeSuggestionLists({
+      catalog: DEFAULT_VACCINE_NAMES,
+      recent: recentVaccines,
+      extras: fromStock,
+    });
+  }, [stockItems, recentVaccines]);
+
+  const veterinarianOptions = useMemo(
+    () =>
+      mergeSuggestionLists({
+        catalog: clinicVet ? [clinicVet] : [],
+        recent: recentVets,
+      }),
+    [clinicVet, recentVets]
+  );
+
+  const selectedAnimal = useMemo(
+    () => animals.find((a) => String(a.id) === String(form.animalId)) || null,
+    [animals, form.animalId]
+  );
+
+  function resolveVaccineFee(vaccineName, stock = stockItems, fees = serviceFees) {
+    const fromStock = resolveStockSalePrice(stock, vaccineName);
+    if (fromStock && fromStock.salePrice > 0) {
+      return {
+        fee: fromStock.salePrice,
+        feeSource: "auto",
+      };
     }
-  }, [vaccine]);
+
+    const fallback = getServiceDefaultPrice(fees, "Aşı Uygulama");
+    return {
+      fee: fallback,
+      feeSource: fallback > 0 ? "auto" : "",
+    };
+  }
+
+  function handleVaccineNameChange(value) {
+    const vaccineName = typeof value === "string" ? value : value || "";
+    setForm((prev) => ({
+      ...prev,
+      vaccineName,
+      ...resolveVaccineFee(vaccineName),
+    }));
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
 
-    if (name === "animalId") {
-      const animal = animals.find(
-        (a) => String(a.id) === String(value)
-      );
-
+    if (name === "fee") {
       setForm((prev) => ({
         ...prev,
-        animalId: value,
-        animalName: animal?.name || "",
-        ownerId: animal?.ownerId || "",
-        ownerName: animal?.ownerName || "",
+        fee: value,
+        feeSource: "manual",
       }));
-
       return;
     }
 
@@ -70,63 +168,122 @@ function VaccineForm({
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!form.animalId) {
-      alert("Hayvan seçiniz.");
+      notify("Hayvan seçiniz.", "error");
       return;
     }
 
     if (!form.vaccineName) {
-      alert("Aşı seçiniz.");
+      notify("Aşı seçiniz.", "error");
       return;
     }
 
-    onSave(form);
+    if (!form.applicationDate) {
+      notify("Uygulama tarihi seçiniz.", "error");
+      return;
+    }
+
+    await rememberRecentValue("vaccines", form.vaccineName);
+    if (form.veterinarian?.trim()) {
+      await rememberRecentValue("veterinarians", form.veterinarian.trim());
+    }
+
+    onSave({
+      ...form,
+      status: form.status || "Tamamlandı",
+    });
   }
+
+  const feeHighlight =
+    form.feeSource === "auto"
+      ? {
+          bgcolor: "rgba(16, 185, 129, 0.12)",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "success.light",
+          },
+        }
+      : form.feeSource === "manual"
+        ? {
+            bgcolor: "rgba(245, 158, 11, 0.1)",
+          }
+        : undefined;
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
       <Grid container spacing={2}>
 
         <Grid size={12}>
-          <TextField
-            select
-            fullWidth
+          <SearchableAutocomplete
             label="Hayvan"
-            name="animalId"
-            value={form.animalId}
-            onChange={handleChange}
-          >
-            {animals.map((animal) => (
-              <MenuItem key={animal.id} value={animal.id}>
-                {animal.name} - {animal.ownerName}
-              </MenuItem>
-            ))}
-          </TextField>
+            value={selectedAnimal}
+            options={animals}
+            freeSolo={false}
+            getOptionLabel={animalLabel}
+            isOptionEqualToValue={(a, b) =>
+              String(a?.id || "") === String(b?.id || "")
+            }
+            onChange={(animal) =>
+              setForm((prev) => ({
+                ...prev,
+                animalId: animal?.id || "",
+                animalName: animal?.name || "",
+                ownerId: animal?.ownerId || "",
+                ownerName: animal?.ownerName || "",
+              }))
+            }
+            placeholder="Hayvan ara..."
+          />
+        </Grid>
+
+        <Grid size={6}>
+          <SearchableAutocomplete
+            label="Aşı Adı"
+            value={form.vaccineName}
+            options={vaccineOptions}
+            freeSolo
+            onChange={handleVaccineNameChange}
+            placeholder="Aşı ara..."
+            helperText="Yazarak arayın; listede yoksa Enter ile ekleyin"
+          />
         </Grid>
 
         <Grid size={6}>
           <TextField
             select
             fullWidth
-            label="Aşı Türü"
-            name="vaccineName"
-            value={form.vaccineName}
+            label="Durum"
+            name="status"
+            value={form.status || "Tamamlandı"}
             onChange={handleChange}
           >
-            <MenuItem value="Kuduz">Kuduz</MenuItem>
-            <MenuItem value="Karma">Karma</MenuItem>
-            <MenuItem value="Lösemi">Lösemi</MenuItem>
-            <MenuItem value="Bronchine">Bronchine</MenuItem>
-            <MenuItem value="Corona">Corona</MenuItem>
-            <MenuItem value="İç Parazit">İç Parazit</MenuItem>
-            <MenuItem value="Dış Parazit">Dış Parazit</MenuItem>
-            <MenuItem value="Lyme">Lyme</MenuItem>
-            <MenuItem value="Bordetella">Bordetella</MenuItem>
-            <MenuItem value="Diğer">Diğer</MenuItem>
+            <MenuItem value="Bekliyor">Bekliyor</MenuItem>
+            <MenuItem value="Tamamlandı">Tamamlandı</MenuItem>
           </TextField>
+        </Grid>
+
+        <Grid size={6}>
+          <TextField
+            fullWidth
+            type="number"
+            label="Ücret (₺)"
+            name="fee"
+            value={form.fee}
+            onChange={handleChange}
+            helperText={
+              form.feeSource === "auto"
+                ? "Otomatik (stok / ayarlar)"
+                : form.feeSource === "manual"
+                  ? "Manuel düzenlendi"
+                  : " "
+            }
+            sx={feeHighlight}
+            slotProps={{
+              htmlInput: { min: 0, step: 0.01 },
+            }}
+          />
         </Grid>
 
         <Grid size={6}>
@@ -167,7 +324,9 @@ function VaccineForm({
             name="applicationDate"
             value={form.applicationDate}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Grid>
 
@@ -179,17 +338,25 @@ function VaccineForm({
             name="nextDoseDate"
             value={form.nextDoseDate}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Grid>
 
         <Grid size={12}>
-          <TextField
-            fullWidth
+          <SearchableAutocomplete
             label="Veteriner"
-            name="veterinarian"
             value={form.veterinarian}
-            onChange={handleChange}
+            options={veterinarianOptions}
+            freeSolo
+            onChange={(value) =>
+              setForm((prev) => ({
+                ...prev,
+                veterinarian: typeof value === "string" ? value : value || "",
+              }))
+            }
+            placeholder="Veteriner ara..."
           />
         </Grid>
 

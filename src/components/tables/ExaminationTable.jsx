@@ -3,17 +3,29 @@ import {
   Box,
   IconButton,
   Tooltip,
+  Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import VisibilityIcon from "@mui/icons-material/Visibility";
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+import MedicationIcon from "@mui/icons-material/Medication";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
 
 function ExaminationTable({
   examinations = [],
   onEdit,
   onDelete,
+  onCreatePrescription,
+  onCreateInvoice,
 }) {
   const navigate = useNavigate();
 
@@ -24,77 +36,130 @@ function ExaminationTable({
       : "-",
   }));
 
+  const actionWidth =
+    160 +
+    (onCreatePrescription ? 40 : 0) +
+    (onCreateInvoice ? 40 : 0);
+
   const columns = [
     {
       field: "animalName",
       headerName: "Hayvan",
       flex: 1,
       minWidth: 150,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "ownerName",
       headerName: "Sahibi",
       flex: 1,
       minWidth: 180,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
+    },
+    {
+      field: "examType",
+      headerName: "Tür",
+      width: 140,
+      valueGetter: (value) => value || "-",
     },
     {
       field: "veterinarian",
       headerName: "Veteriner",
-      width: 170,
+      width: 150,
       valueGetter: (value) => value || "-",
     },
     {
       field: "generalCondition",
       headerName: "Genel Durum",
-      width: 140,
+      width: 130,
       valueGetter: (value) => value || "-",
     },
     {
       field: "diagnosis",
       headerName: "Tanı",
       flex: 1,
-      minWidth: 180,
+      minWidth: 160,
       valueGetter: (value) => value || "-",
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "date",
       headerName: "Tarih",
-      width: 120,
+      width: 110,
     },
     {
       field: "actions",
       headerName: "İşlemler",
-      width: 150,
+      width: actionWidth,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
         <>
           <Tooltip title="Detay">
             <IconButton
-              color="primary"
+              size="small"
+              color="info"
               onClick={() =>
                 navigate(`/hayvanlar/${params.row.animalId}`)
               }
             >
-              <VisibilityIcon />
+              <VisibilityIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
+          {onCreateInvoice && (
+            <Tooltip title="Fatura Oluştur">
+              <IconButton
+                size="small"
+                color="success"
+                onClick={() => onCreateInvoice?.(params.row)}
+              >
+                <ReceiptLongIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+
+          {onCreatePrescription && (
+            <Tooltip title="Reçete Oluştur">
+              <IconButton
+                size="small"
+                color="secondary"
+                onClick={() => onCreatePrescription?.(params.row)}
+              >
+                <MedicationIcon fontSize="small" />
+              </IconButton>
+            </Tooltip>
+          )}
+
           <Tooltip title="Düzenle">
             <IconButton
-              color="warning"
+              size="small"
+              color="primary"
               onClick={() => onEdit?.(params.row)}
             >
-              <EditIcon />
+              <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
           <Tooltip title="Sil">
             <IconButton
+              size="small"
               color="error"
               onClick={() => onDelete?.(params.row.id)}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </>
@@ -103,19 +168,14 @@ function ExaminationTable({
   ];
 
   return (
-    <Box sx={{ height: 600, width: "100%" }}>
+    <Box sx={{ height: DATA_GRID_HEIGHT, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
         disableRowSelectionOnClick
-        pageSizeOptions={[5, 10, 20]}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
-        }}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
+        initialState={DATA_GRID_INITIAL_PAGINATION}
+        sx={dataGridSx}
       />
     </Box>
   );

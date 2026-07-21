@@ -1,4 +1,4 @@
-import { useMemo, useState } from "react";
+import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
 
 import {
@@ -17,18 +17,39 @@ import PetsIcon from "@mui/icons-material/Pets";
 import VaccinesIcon from "@mui/icons-material/Vaccines";
 import EventIcon from "@mui/icons-material/Event";
 import MedicalServicesIcon from "@mui/icons-material/MedicalServices";
+import MedicationIcon from "@mui/icons-material/Medication";
+import ReceiptLongIcon from "@mui/icons-material/ReceiptLong";
+import PaymentsIcon from "@mui/icons-material/Payments";
+import Inventory2Icon from "@mui/icons-material/Inventory2";
+import MiscellaneousServicesIcon from "@mui/icons-material/MiscellaneousServices";
+import NotificationsActiveIcon from "@mui/icons-material/NotificationsActive";
+import HistoryIcon from "@mui/icons-material/History";
 
 import { globalSearch } from "../../services/searchService";
+import { useAuth } from "../../hooks/useAuth";
 
 function GlobalSearch() {
   const [text, setText] = useState("");
+  const [results, setResults] = useState([]);
 
   const navigate = useNavigate();
+  const { user } = useAuth();
 
-  const results = useMemo(() => {
-    if (!text.trim()) return [];
-    return globalSearch(text);
-  }, [text]);
+  useEffect(() => {
+    if (!text.trim()) return;
+
+    let cancelled = false;
+
+    globalSearch(text, user?.role).then((data) => {
+      if (!cancelled) setResults(data);
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, [text, user?.role]);
+
+  const visibleResults = text.trim() ? results : [];
 
   function getIcon(type) {
     switch (type) {
@@ -46,6 +67,27 @@ function GlobalSearch() {
 
       case "examination":
         return <MedicalServicesIcon color="error" />;
+
+      case "prescription":
+        return <MedicationIcon color="secondary" />;
+
+      case "invoice":
+        return <ReceiptLongIcon color="success" />;
+
+      case "payment":
+        return <PaymentsIcon color="success" />;
+
+      case "stock":
+        return <Inventory2Icon color="warning" />;
+
+      case "service":
+        return <MiscellaneousServicesIcon color="primary" />;
+
+      case "reminder":
+        return <NotificationsActiveIcon color="warning" />;
+
+      case "audit":
+        return <HistoryIcon color="action" />;
 
       default:
         return null;
@@ -74,6 +116,31 @@ function GlobalSearch() {
         navigate("/muayeneler");
         break;
 
+      case "prescription":
+        navigate("/receteler");
+        break;
+
+      case "invoice":
+      case "payment":
+        navigate("/faturalar");
+        break;
+
+      case "stock":
+        navigate("/stok");
+        break;
+
+      case "service":
+        navigate("/ayarlar");
+        break;
+
+      case "reminder":
+        navigate("/hatirlatmalar");
+        break;
+
+      case "audit":
+        navigate("/aktivite");
+        break;
+
       default:
         break;
     }
@@ -82,7 +149,7 @@ function GlobalSearch() {
   }
 
   return (
-    <Box sx={{ position: "relative", width: 380 }}>
+    <Box sx={{ position: "relative", width: "100%" }}>
 
       <TextField
         fullWidth
@@ -92,7 +159,7 @@ function GlobalSearch() {
         onChange={(e) => setText(e.target.value)}
       />
 
-      {results.length > 0 && (
+      {visibleResults.length > 0 && (
         <Paper
           sx={{
             position: "absolute",
@@ -105,7 +172,7 @@ function GlobalSearch() {
         >
           <List>
 
-            {results.map((item) => (
+            {visibleResults.map((item) => (
               <ListItemButton
                 key={`${item.type}-${item.id}`}
                 onClick={() => handleClick(item)}

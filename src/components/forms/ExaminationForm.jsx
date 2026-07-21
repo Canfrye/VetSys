@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 
 import {
   Box,
@@ -7,6 +7,24 @@ import {
   MenuItem,
   TextField,
 } from "@mui/material";
+
+import SearchableAutocomplete from "../SearchableAutocomplete";
+import { useNotification } from "../../hooks/useNotification";
+import { todayDateOnly } from "../../utils/dateRange";
+import { getSettings } from "../../services/settingsService";
+import {
+  getExamTypeOptions,
+  getServiceDefaultPrice,
+} from "../../utils/serviceCatalog";
+import {
+  mergeSuggestionLists,
+  rememberRecentValue,
+} from "../../utils/selectionMemory";
+
+function animalLabel(animal) {
+  if (!animal) return "";
+  return `${animal.name || ""} - ${animal.ownerName || ""}`.trim();
+}
 
 function ExaminationForm({
   examination,
@@ -22,9 +40,11 @@ function ExaminationForm({
 
     veterinarian: "",
 
-    examinationDate: new Date()
-      .toISOString()
-      .substring(0, 10),
+    examinationDate: todayDateOnly(),
+
+    examType: "Genel Muayene",
+    fee: "",
+    feeSource: "",
 
     complaint: "",
 
@@ -51,34 +71,112 @@ function ExaminationForm({
     controlDate: "",
 
     notes: "",
+
+    species: "",
+
+    attachments: [],
   };
 
-  const [form, setForm] =useState(emptyForm);
+  const { notify } = useNotification();
+
+  const [form, setForm] = useState(() =>
+    examination
+      ? {
+          ...emptyForm,
+          ...examination,
+          fee:
+            examination.fee != null && examination.fee !== ""
+              ? examination.fee
+              : "",
+          feeSource: examination.feeSource || "",
+        }
+      : emptyForm
+  );
+
+  const [examTypes, setExamTypes] = useState([]);
+  const [serviceFees, setServiceFees] = useState([]);
+  const [recentVets, setRecentVets] = useState([]);
+  const [clinicVet, setClinicVet] = useState("");
 
   useEffect(() => {
-    if (examination) {
-      setForm(examination);
-    } else {
-      setForm(emptyForm);
-    }
-  }, [examination]);
+    let cancelled = false;
+
+    getSettings().then((settings) => {
+      if (cancelled) return;
+      const fees = settings.serviceFees || [];
+      setServiceFees(fees);
+      setExamTypes(getExamTypeOptions(fees));
+      setRecentVets(settings.recentSelections?.veterinarians || []);
+      setClinicVet(settings.veterinarian || "");
+
+      setForm((prev) => {
+        if (prev.feeSource === "manual") return prev;
+        if (prev.fee !== "" && prev.fee != null && Number(prev.fee) > 0) {
+          return prev;
+        }
+
+        const price = getServiceDefaultPrice(
+          fees,
+          prev.examType || "Genel Muayene"
+        );
+
+        if (price <= 0) return prev;
+
+        return {
+          ...prev,
+          fee: price,
+          feeSource: "auto",
+        };
+      });
+    });
+
+    return () => {
+      cancelled = true;
+    };
+  }, []);
+
+  const veterinarianOptions = useMemo(
+    () =>
+      mergeSuggestionLists({
+        catalog: clinicVet ? [clinicVet] : [],
+        recent: recentVets,
+      }),
+    [clinicVet, recentVets]
+  );
+
+  const selectedAnimal = useMemo(
+    () => animals.find((a) => String(a.id) === String(form.animalId)) || null,
+    [animals, form.animalId]
+  );
+
+  function applyExamTypeFee(examType, fees, keepManual) {
+    if (keepManual) return {};
+
+    const price = getServiceDefaultPrice(fees || serviceFees, examType);
+    return {
+      fee: price,
+      feeSource: price > 0 || examType ? "auto" : "",
+    };
+  }
 
   function handleChange(e) {
     const { name, value } = e.target;
 
-    if (name === "animalId") {
-      const animal = animals.find(
-        (a) => String(a.id) === String(value)
-      );
-
+    if (name === "examType") {
       setForm((prev) => ({
         ...prev,
-        animalId: value,
-        animalName: animal?.name || "",
-        ownerId: animal?.ownerId || "",
-        ownerName: animal?.ownerName || "",
+        examType: value,
+        ...applyExamTypeFee(value, serviceFees, false),
       }));
+      return;
+    }
 
+    if (name === "fee") {
+      setForm((prev) => ({
+        ...prev,
+        fee: value,
+        feeSource: "manual",
+      }));
       return;
     }
 
@@ -88,42 +186,84 @@ function ExaminationForm({
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!form.animalId) {
-      alert("Hayvan seçiniz.");
+      notify("Hayvan seçiniz.", "error");
       return;
     }
 
     if (!form.complaint.trim()) {
-      alert("Şikayet alanı zorunludur.");
+      notify("Şikayet alanı zorunludur.", "error");
       return;
+    }
+
+    if (form.veterinarian?.trim()) {
+      await rememberRecentValue("veterinarians", form.veterinarian.trim());
     }
 
     onSave(form);
   }
+
+  const feeHighlight =
+    form.feeSource === "auto"
+      ? {
+          bgcolor: "rgba(16, 185, 129, 0.12)",
+          "& .MuiOutlinedInput-notchedOutline": {
+            borderColor: "success.light",
+          },
+        }
+      : form.feeSource === "manual"
+        ? {
+            bgcolor: "rgba(245, 158, 11, 0.1)",
+          }
+        : undefined;
 
   return (
     <Box component="form" onSubmit={handleSubmit} sx={{ mt: 1 }}>
       <Grid container spacing={2}>
 
         <Grid size={12}>
+          <SearchableAutocomplete
+            label="Hayvan"
+            value={selectedAnimal}
+            options={animals}
+            freeSolo={false}
+            required
+            getOptionLabel={animalLabel}
+            isOptionEqualToValue={(a, b) =>
+              String(a?.id || "") === String(b?.id || "")
+            }
+            onChange={(animal) =>
+              setForm((prev) => ({
+                ...prev,
+                animalId: animal?.id || "",
+                animalName: animal?.name || "",
+                ownerId: animal?.ownerId || "",
+                ownerName: animal?.ownerName || "",
+                species: animal?.species || "",
+              }))
+            }
+            placeholder="Hayvan ara..."
+          />
+        </Grid>
+
+        <Grid size={6}>
           <TextField
             select
             fullWidth
-            label="Hayvan"
-            name="animalId"
-            value={form.animalId}
+            label="Muayene Türü"
+            name="examType"
+            value={form.examType || ""}
             onChange={handleChange}
-            required
           >
-            {animals.map((animal) => (
-              <MenuItem
-                key={animal.id}
-                value={animal.id}
-              >
-                {animal.name} - {animal.ownerName}
+            {(examTypes.length > 0
+              ? examTypes
+              : [{ name: "Genel Muayene" }]
+            ).map((opt) => (
+              <MenuItem key={opt.name} value={opt.name}>
+                {opt.name}
               </MenuItem>
             ))}
           </TextField>
@@ -132,10 +272,38 @@ function ExaminationForm({
         <Grid size={6}>
           <TextField
             fullWidth
-            label="Veteriner"
-            name="veterinarian"
-            value={form.veterinarian}
+            type="number"
+            label="Muayene Ücreti (₺)"
+            name="fee"
+            value={form.fee}
             onChange={handleChange}
+            helperText={
+              form.feeSource === "auto"
+                ? "Otomatik (ayarlar)"
+                : form.feeSource === "manual"
+                  ? "Manuel düzenlendi"
+                  : " "
+            }
+            sx={feeHighlight}
+            slotProps={{
+              htmlInput: { min: 0, step: 0.01 },
+            }}
+          />
+        </Grid>
+
+        <Grid size={6}>
+          <SearchableAutocomplete
+            label="Veteriner"
+            value={form.veterinarian}
+            options={veterinarianOptions}
+            freeSolo
+            onChange={(value) =>
+              setForm((prev) => ({
+                ...prev,
+                veterinarian: typeof value === "string" ? value : value || "",
+              }))
+            }
+            placeholder="Veteriner ara..."
           />
         </Grid>
 
@@ -147,7 +315,9 @@ function ExaminationForm({
             name="examinationDate"
             value={form.examinationDate}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Grid>
 
@@ -214,7 +384,7 @@ function ExaminationForm({
           />
         </Grid>
 
-        <Grid size={2.4}>
+        <Grid size={4}>
           <TextField
             fullWidth
             label="Ateş (°C)"
@@ -224,7 +394,7 @@ function ExaminationForm({
           />
         </Grid>
 
-        <Grid size={2.4}>
+        <Grid size={4}>
           <TextField
             fullWidth
             label="Nabız"
@@ -234,7 +404,7 @@ function ExaminationForm({
           />
         </Grid>
 
-        <Grid size={2.4}>
+        <Grid size={4}>
           <TextField
             fullWidth
             label="Solunum"
@@ -244,7 +414,7 @@ function ExaminationForm({
           />
         </Grid>
 
-        <Grid size={2.4}>
+        <Grid size={6}>
           <TextField
             fullWidth
             label="Boy (cm)"
@@ -254,7 +424,7 @@ function ExaminationForm({
           />
         </Grid>
 
-        <Grid size={2.4}>
+        <Grid size={6}>
           <TextField
             fullWidth
             label="Kilo (kg)"
@@ -308,7 +478,9 @@ function ExaminationForm({
             name="controlDate"
             value={form.controlDate}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Grid>
 

@@ -1,9 +1,16 @@
 import { DataGrid } from "@mui/x-data-grid";
-import { Box, IconButton, Tooltip } from "@mui/material";
+import { Box, IconButton, Tooltip, Typography } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
 
 function AnimalTable({
   animals = [],
@@ -40,12 +47,22 @@ function AnimalTable({
       headerName: "Hayvan",
       flex: 1,
       minWidth: 160,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "owner",
       headerName: "Sahibi",
       flex: 1,
-      minWidth: 190,
+      minWidth: 180,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "phone",
@@ -85,7 +102,7 @@ function AnimalTable({
     {
       field: "actions",
       headerName: "İşlemler",
-      width: 120,
+      width: 140,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -99,7 +116,7 @@ function AnimalTable({
                 onEdit?.(params.row.id);
               }}
             >
-              <EditIcon />
+              <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
@@ -112,7 +129,7 @@ function AnimalTable({
                 onDelete?.(params.row.id);
               }}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </>
@@ -121,23 +138,18 @@ function AnimalTable({
   ];
 
   return (
-    <Box sx={{ height: 600, width: "100%" }}>
+    <Box sx={{ height: DATA_GRID_HEIGHT, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
-        pageSizeOptions={[5, 10, 20, 50]}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
-        }}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
+        initialState={DATA_GRID_INITIAL_PAGINATION}
         disableRowSelectionOnClick
         density="comfortable"
         onRowClick={(params) =>
           navigate(`/hayvanlar/${params.id}`)
         }
+        sx={dataGridSx}
       />
     </Box>
   );

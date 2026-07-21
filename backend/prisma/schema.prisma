@@ -1,0 +1,349 @@
+// VetSys — Prisma şeması (Sprint 26: FE alan adlarıyla uyumlu genişletme)
+
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "postgresql"
+  url      = env("DATABASE_URL")
+}
+
+enum Role {
+  ADMIN
+  VETERINARIAN
+  RECEPTION
+}
+
+model User {
+  id        String   @id @default(uuid())
+  username  String   @unique
+  password  String
+  fullName  String
+  role      Role     @default(RECEPTION)
+  active    Boolean  @default(true)
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  @@map("users")
+}
+
+model Customer {
+  id        String   @id @default(uuid())
+  ad        String
+  soyad     String
+  telefon   String?
+  email     String?
+  tcKimlik  String?
+  adres     String?
+  not       String?
+  createdAt DateTime @default(now())
+  updatedAt DateTime @updatedAt
+
+  animals       Animal[]
+  appointments  Appointment[]
+  examinations  Examination[]
+  vaccines      Vaccine[]
+  invoices      Invoice[]
+  prescriptions Prescription[]
+  payments      Payment[]
+
+  @@map("customers")
+}
+
+model Animal {
+  id             String    @id @default(uuid())
+  name           String
+  species        String
+  breed          String?
+  gender         String?
+  birthDate      DateTime?
+  color          String?
+  microchipNo    String?   @unique
+  weight         String?
+  passportNo     String?
+  neutered       Boolean   @default(false)
+  active         Boolean   @default(true)
+  note           String?
+  ownerType      String    @default("customer")
+  otherOwnerName String?
+  createdAt      DateTime  @default(now())
+  updatedAt      DateTime  @updatedAt
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  appointments  Appointment[]
+  examinations  Examination[]
+  vaccines      Vaccine[]
+  invoices      Invoice[]
+  prescriptions Prescription[]
+  payments      Payment[]
+
+  @@index([customerId])
+  @@map("animals")
+}
+
+model Appointment {
+  id           String   @id @default(uuid())
+  date         String
+  time         String
+  duration     Int      @default(30)
+  veterinarian String?
+  reason       String?
+  status       String   @default("Bekliyor")
+  note         String?
+  createdAt    DateTime @default(now())
+  updatedAt    DateTime @updatedAt
+
+  animalId String
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([animalId])
+  @@index([customerId])
+  @@index([date])
+  @@map("appointments")
+}
+
+model Examination {
+  id               String   @id @default(uuid())
+  species          String?
+  veterinarian     String?
+  examinationDate  String
+  examType         String?
+  fee              Float?
+  complaint        String?
+  generalCondition String?
+  diagnosis        String?
+  findings         String?
+  treatment        String?
+  temperature      String?
+  pulse            String?
+  respiration      String?
+  height           String?
+  weight           String?
+  medicines        String?
+  procedures       String?
+  labResult        String?
+  controlDate      String?
+  notes            String?
+  attachments      Json?
+  createdAt        DateTime @default(now())
+  updatedAt        DateTime @updatedAt
+
+  animalId String
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([animalId])
+  @@index([customerId])
+  @@map("examinations")
+}
+
+model Vaccine {
+  id              String   @id @default(uuid())
+  vaccineName     String
+  brand           String?
+  batchNo         String?
+  dose            String?
+  applicationDate String
+  nextDoseDate    String?
+  fee             Float?
+  veterinarian    String?
+  notes           String?
+  status          String?
+  createdAt       DateTime @default(now())
+  updatedAt       DateTime @updatedAt
+
+  animalId String
+  animal   Animal @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([animalId])
+  @@index([customerId])
+  @@map("vaccines")
+}
+
+model Stock {
+  id             String   @id @default(uuid())
+  name           String
+  category       String?
+  quantity       Float    @default(0)
+  unit           String?
+  minQuantity    Float    @default(0)
+  criticalLevel  Int      @default(0)
+  price          Float    @default(0)
+  purchasePrice  Float    @default(0)
+  expiryDate     String?
+  lotNo          String?
+  supplierName   String?
+  supplierPhone  String?
+  supplierEmail  String?
+  supplierNote   String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  movements StockMovement[]
+
+  @@map("stock")
+}
+
+model StockMovement {
+  id                 String   @id @default(uuid())
+  type               String
+  quantity           Float    @default(0)
+  previousQuantity   Float    @default(0)
+  newQuantity        Float    @default(0)
+  userName           String?
+  note               String?
+  date               String
+  prescriptionId     String?
+  prescriptionNumber String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  stockId   String
+  stockName String?
+  stock     Stock  @relation(fields: [stockId], references: [id], onDelete: Cascade)
+
+  @@index([stockId])
+  @@index([date])
+  @@map("stock_movements")
+}
+
+model Invoice {
+  id             String   @id @default(uuid())
+  invoiceNumber  String   @unique
+  date           String
+  discountType   String   @default("none")
+  discountValue  Float    @default(0)
+  vatEnabled     Boolean  @default(false)
+  vatRate        Float    @default(0)
+  paymentStatus  String   @default("")
+  cancelled      Boolean  @default(false)
+  note           String?
+  subtotal       Float    @default(0)
+  discountAmount Float    @default(0)
+  vatAmount      Float    @default(0)
+  total          Float    @default(0)
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  animalId String?
+  animal   Animal? @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  items    InvoiceItem[]
+  payments Payment[]
+
+  @@index([animalId])
+  @@index([customerId])
+  @@index([date])
+  @@map("invoices")
+}
+
+model InvoiceItem {
+  id           String  @id @default(uuid())
+  type         String
+  description  String?
+  unitPrice    Float   @default(0)
+  quantity     Float   @default(1)
+  purchasePrice Float  @default(0)
+  stockId      String?
+  priceSource  String?
+  sourceRef    String?
+  subtotal     Float   @default(0)
+
+  invoiceId String
+  invoice   Invoice @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@map("invoice_items")
+}
+
+model Prescription {
+  id                 String   @id @default(uuid())
+  prescriptionNumber String   @unique
+  veterinarian       String?
+  examinationId      String?
+  examinationDate    String?
+  date               String
+  diagnosis          String?
+  notes              String?
+  createdAt          DateTime @default(now())
+  updatedAt          DateTime @updatedAt
+
+  animalId String?
+  animal   Animal? @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  items PrescriptionItem[]
+
+  @@index([animalId])
+  @@index([customerId])
+  @@index([date])
+  @@map("prescriptions")
+}
+
+model PrescriptionItem {
+  id           String  @id @default(uuid())
+  medicationName String
+  dose         String?
+  quantity     Float   @default(1)
+  frequency    String?
+  duration     String?
+  instructions String?
+
+  prescriptionId String
+  prescription   Prescription @relation(fields: [prescriptionId], references: [id], onDelete: Cascade)
+
+  @@index([prescriptionId])
+  @@map("prescription_items")
+}
+
+model Payment {
+  id             String   @id @default(uuid())
+  receiptNumber  String   @unique
+  invoiceNumber  String?
+  amount         Float    @default(0)
+  method         String   @default("Nakit")
+  date           String
+  note           String?
+  createdAt      DateTime @default(now())
+  updatedAt      DateTime @updatedAt
+
+  invoiceId String?
+  invoice   Invoice? @relation(fields: [invoiceId], references: [id], onDelete: Cascade)
+
+  animalId String?
+  animal   Animal? @relation(fields: [animalId], references: [id], onDelete: Cascade)
+
+  customerId String?
+  customer   Customer? @relation(fields: [customerId], references: [id], onDelete: Cascade)
+
+  @@index([invoiceId])
+  @@index([animalId])
+  @@index([customerId])
+  @@index([date])
+  @@map("payments")
+}
+
+/// Klinik ayarları + auditLogs / reminderStatuses vb. tek JSON satırı
+model Settings {
+  id        String   @id @default("default")
+  data      Json
+  updatedAt DateTime @updatedAt
+
+  @@map("settings")
+}

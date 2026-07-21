@@ -1,58 +1,71 @@
-.customer-page{
-    display:flex;
-    flex-direction:column;
-    gap:25px;
+.customer-page {
+  display: flex;
+  flex-direction: column;
+  gap: 25px;
+  width: 100%;
+  min-width: 0;
 }
 
-.customer-header{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+.customer-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  flex-wrap: wrap;
 }
 
-.customer-header h1{
-    margin:0;
-    font-size:34px;
+.customer-header h1,
+.page-title {
+  margin: 0;
+  font-size: 28px;
+  font-weight: 700;
+  line-height: 1.25;
+  color: #111827;
 }
 
-.customer-header p{
-    color:#777;
-    margin-top:6px;
+.customer-header p,
+.page-subtitle {
+  color: #6b7280;
+  margin-top: 6px;
+  margin-bottom: 0;
+  font-size: 15px;
 }
 
-.add-btn{
-    background:#2563eb;
-    color:white;
-    border:none;
-    padding:12px 22px;
-    border-radius:10px;
-    cursor:pointer;
-    font-size:15px;
-    font-weight:600;
-    transition:.25s;
+.add-btn {
+  background: #2563eb;
+  color: white;
+  border: none;
+  padding: 12px 22px;
+  border-radius: 12px;
+  cursor: pointer;
+  font-size: 15px;
+  font-weight: 600;
+  font-family: inherit;
+  transition: background 0.2s ease, box-shadow 0.2s ease;
+  white-space: nowrap;
 }
 
-.add-btn:hover{
-    background:#1d4ed8;
+.add-btn:hover {
+  background: #1d4ed8;
+  box-shadow: 0 8px 20px rgba(37, 99, 235, 0.25);
 }
 
-.customer-toolbar{
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
+.customer-card {
+  background: white;
+  border-radius: 15px;
+  padding: 20px;
+  box-shadow: 0 10px 30px rgba(0, 0, 0, 0.06);
+  overflow-x: auto;
+  min-width: 0;
 }
 
-.search-input{
-    width:350px;
-    padding:12px;
-    border-radius:10px;
-    border:1px solid #ddd;
-    font-size:15px;
-}
+@media (max-width: 768px) {
+  .customer-header h1,
+  .page-title {
+    font-size: 24px;
+  }
 
-.customer-card{
-    background:white;
-    border-radius:15px;
-    padding:20px;
-    box-shadow:0 10px 30px rgba(0,0,0,.06);
+  .add-btn {
+    width: 100%;
+  }
 }

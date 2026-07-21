@@ -6,7 +6,11 @@ import {
   Stack,
 } from "@mui/material";
 
+import { getAnimalOwnerDisplay, OWNER_TYPE } from "../../utils/ownerType";
+
 function AnimalInfoCard({ animal, owner }) {
+  const ownerDisplay = getAnimalOwnerDisplay(animal, owner);
+
   return (
     <Card>
 
@@ -28,12 +32,20 @@ function AnimalInfoCard({ animal, owner }) {
               Sahibi
             </Typography>
 
-            <Typography>
-              {owner
-                ? `${owner.ad} ${owner.soyad}`
-                : "-"}
+            <Typography noWrap title={ownerDisplay}>
+              {ownerDisplay}
             </Typography>
           </div>
+
+          {animal.ownerType && animal.ownerType !== OWNER_TYPE.CUSTOMER && (
+            <div>
+              <Typography color="text.secondary">
+                Sahip Tipi
+              </Typography>
+
+              <Typography>{animal.ownerType}</Typography>
+            </div>
+          )}
 
           <div>
             <Typography color="text.secondary">
@@ -57,6 +69,26 @@ function AnimalInfoCard({ animal, owner }) {
             </Typography>
 
             <Typography>{animal.gender}</Typography>
+          </div>
+
+          <div>
+            <Typography color="text.secondary">
+              Doğum Tarihi
+            </Typography>
+
+            <Typography>
+              {animal.birthDate || "-"}
+            </Typography>
+          </div>
+
+          <div>
+            <Typography color="text.secondary">
+              Renk
+            </Typography>
+
+            <Typography>
+              {animal.color || "-"}
+            </Typography>
           </div>
 
           <div>

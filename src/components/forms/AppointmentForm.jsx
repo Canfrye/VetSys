@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useState } from "react";
 
 import {
   Box,
@@ -8,11 +8,21 @@ import {
   TextField,
 } from "@mui/material";
 
+import { useNotification } from "../../hooks/useNotification";
+import { isAppointmentConflict } from "../../services/appointmentService";
+import { APPOINTMENT_STATUSES } from "../../utils/appointmentStatus";
+import { todayDateOnly } from "../../utils/dateRange";
+
+const EMPTY_INITIAL_VALUES = {};
+
+const DURATION_OPTIONS = [15, 30, 45, 60, 90];
+
 function AppointmentForm({
   appointment,
   animals = [],
   isEditing,
   onSave,
+  initialValues = EMPTY_INITIAL_VALUES,
 }) {
   const emptyForm = {
     animalId: "",
@@ -21,8 +31,9 @@ function AppointmentForm({
     ownerId: "",
     ownerName: "",
 
-    date: new Date().toISOString().substring(0, 10),
+    date: todayDateOnly(),
     time: "",
+    duration: 30,
 
     veterinarian: "",
 
@@ -33,15 +44,15 @@ function AppointmentForm({
     note: "",
   };
 
-  const [form, setForm] = useState(emptyForm);
+  const { notify } = useNotification();
 
-  useEffect(() => {
-    if (appointment) {
-      setForm(appointment);
-    } else {
-      setForm(emptyForm);
-    }
-  }, [appointment]);
+  // NOT: `appointment`/`initialValues` değiştiğinde formu resetlemek için
+  // useEffect yerine "derived state" deseni kullanılıyor. Üst bileşen
+  // (Appointments.jsx), düzenlenen randevu veya takvimden seçilen slot
+  // değiştiğinde bu bileşeni `key` prop'u ile yeniden mount eder.
+  const [form, setForm] = useState(() =>
+    appointment ? appointment : { ...emptyForm, ...initialValues }
+  );
 
   function handleChange(e) {
     const { name, value } = e.target;
@@ -68,21 +79,39 @@ function AppointmentForm({
     }));
   }
 
-  function handleSubmit(e) {
+  async function handleSubmit(e) {
     e.preventDefault();
 
     if (!form.animalId) {
-      alert("Hayvan seçiniz.");
+      notify("Hayvan seçiniz.", "error");
       return;
     }
 
     if (!form.date) {
-      alert("Tarih seçiniz.");
+      notify("Tarih seçiniz.", "error");
       return;
     }
 
     if (!form.time) {
-      alert("Saat seçiniz.");
+      notify("Saat seçiniz.", "error");
+      return;
+    }
+
+    if (!form.veterinarian?.trim()) {
+      notify("Veteriner seçiniz / giriniz.", "error");
+      return;
+    }
+
+    const conflict = await isAppointmentConflict(
+      form,
+      isEditing ? appointment?.id : null
+    );
+
+    if (conflict) {
+      notify(
+        `Bu saatte ${form.veterinarian} için başka bir randevu var: ${conflict.time} - ${conflict.animalName}`,
+        "error"
+      );
       return;
     }
 
@@ -121,7 +150,9 @@ function AppointmentForm({
             name="date"
             value={form.date}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
         </Grid>
 
@@ -133,8 +164,27 @@ function AppointmentForm({
             name="time"
             value={form.time}
             onChange={handleChange}
-            InputLabelProps={{ shrink: true }}
+            slotProps={{
+              inputLabel: { shrink: true }
+            }}
           />
+        </Grid>
+
+        <Grid size={6}>
+          <TextField
+            select
+            fullWidth
+            label="Süre"
+            name="duration"
+            value={form.duration || 30}
+            onChange={handleChange}
+          >
+            {DURATION_OPTIONS.map((minutes) => (
+              <MenuItem key={minutes} value={minutes}>
+                {minutes} dakika
+              </MenuItem>
+            ))}
+          </TextField>
         </Grid>
 
         <Grid size={6}>
@@ -156,21 +206,11 @@ function AppointmentForm({
             value={form.status}
             onChange={handleChange}
           >
-            <MenuItem value="Bekliyor">
-              Bekliyor
-            </MenuItem>
-
-            <MenuItem value="Geldi">
-              Geldi
-            </MenuItem>
-
-            <MenuItem value="Tamamlandı">
-              Tamamlandı
-            </MenuItem>
-
-            <MenuItem value="İptal">
-              İptal
-            </MenuItem>
+            {APPOINTMENT_STATUSES.map((status) => (
+              <MenuItem key={status} value={status}>
+                {status}
+              </MenuItem>
+            ))}
           </TextField>
         </Grid>
 

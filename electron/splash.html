@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+    <title>VetSys</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "Segoe UI", Inter, Arial, sans-serif;
+        background: linear-gradient(160deg, #0f766e 0%, #0f172a 55%, #1e293b 100%);
+        color: #f8fafc;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        -webkit-user-select: none;
+        user-select: none;
+      }
+      .card {
+        width: min(420px, 92vw);
+        text-align: center;
+        padding: 32px 28px;
+      }
+      .mark {
+        width: 72px;
+        height: 72px;
+        margin: 0 auto 18px;
+        border-radius: 16px;
+        background: #14b8a6;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 36px;
+        font-weight: 700;
+        color: #fff;
+        box-shadow: 0 12px 40px rgba(20, 184, 166, 0.35);
+      }
+      h1 { font-size: 28px; font-weight: 700; letter-spacing: 0.02em; }
+      .ver { margin-top: 6px; opacity: 0.75; font-size: 13px; }
+      .status {
+        margin-top: 28px;
+        font-size: 15px;
+        opacity: 0.95;
+      }
+      .steps {
+        margin-top: 20px;
+        text-align: left;
+        font-size: 13px;
+        line-height: 1.8;
+        opacity: 0.9;
+      }
+      .bar {
+        margin-top: 22px;
+        height: 4px;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.15);
+        overflow: hidden;
+      }
+      .bar > span {
+        display: block;
+        height: 100%;
+        width: 30%;
+        background: #5eead4;
+        border-radius: 999px;
+        animation: slide 1.2s ease-in-out infinite;
+      }
+      @keyframes slide {
+        0% { transform: translateX(-120%); }
+        100% { transform: translateX(420%); }
+      }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <div class="mark">V</div>
+      <h1>VetSys</h1>
+      <div class="ver" id="version">Sürüm —</div>
+      <div class="status" id="status">Başlatılıyor...</div>
+      <div class="steps" id="steps"></div>
+      <div class="bar"><span></span></div>
+    </div>
+    <script>
+      const stepsEl = document.getElementById("steps");
+      const statusEl = document.getElementById("status");
+      const done = new Set();
+
+      window.vetsysSplash = {
+        setVersion(v) {
+          document.getElementById("version").textContent = "Sürüm " + (v || "—");
+        },
+        setStatus(text) {
+          statusEl.textContent = text || "Başlatılıyor...";
+        },
+        addStep(text) {
+          if (!text || done.has(text)) return;
+          done.add(text);
+          const row = document.createElement("div");
+          row.textContent = "✓ " + text;
+          stepsEl.appendChild(row);
+        },
+      };
+    </script>
+  </body>
+</html>

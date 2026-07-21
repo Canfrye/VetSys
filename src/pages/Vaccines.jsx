@@ -2,7 +2,9 @@ import { useEffect, useState } from "react";
 
 import Drawer from "../components/Drawer";
 import VaccineForm from "../components/forms/VaccineForm";
+import InvoiceForm from "../components/forms/InvoiceForm";
 import VaccineTable from "../components/tables/VaccineTable";
+import EmptyState from "../components/EmptyState";
 
 import "../styles/customer.css";
 
@@ -15,7 +17,20 @@ import {
   deleteVaccine,
 } from "../services/vaccineService";
 
+import { addInvoice, logInvoiceDraftCreated } from "../services/invoiceService";
+import { prepareVaccineCompletionInvoiceOffer } from "../utils/vaccineInvoiceOffer";
+import { INVOICE_WRITE_ROLES } from "../utils/roles";
+
+import { useAuth } from "../hooks/useAuth";
+import { useConfirm } from "../hooks/useConfirm";
+import { useNotification } from "../hooks/useNotification";
+
 function Vaccines() {
+  const confirm = useConfirm();
+  const { notify } = useNotification();
+  const { hasRole } = useAuth();
+  const canWriteInvoice = hasRole(INVOICE_WRITE_ROLES);
+
   const [vaccines, setVaccines] = useState([]);
   const [animals, setAnimals] = useState([]);
 
@@ -24,29 +39,62 @@ function Vaccines() {
   const [editingVaccine, setEditingVaccine] =
     useState(null);
 
+  const [newFormKey, setNewFormKey] = useState(0);
+
+  const [invoiceDrawerOpen, setInvoiceDrawerOpen] = useState(false);
+  const [invoiceDraft, setInvoiceDraft] = useState(null);
+  const [invoiceFormKey, setInvoiceFormKey] = useState(0);
+
   useEffect(() => {
     loadData();
   }, []);
 
-  function loadData() {
-    setVaccines(getVaccines());
-    setAnimals(getAnimals());
+  async function loadData() {
+    const [vaccinesData, animalsData] = await Promise.all([
+      getVaccines(),
+      getAnimals(),
+    ]);
+
+    setVaccines(vaccinesData);
+    setAnimals(animalsData);
   }
 
-  function handleSave(vaccine) {
+  async function maybeOfferInvoiceDraft(savedVaccine, previousStatus) {
+    if (!canWriteInvoice || !savedVaccine) return;
+    if (savedVaccine.status !== "Tamamlandı") return;
+    if (previousStatus === "Tamamlandı") return;
+
+    const offer = await prepareVaccineCompletionInvoiceOffer(savedVaccine);
+    if (!offer?.draft) return;
+
+    setInvoiceDraft(offer.draft);
+    setInvoiceFormKey((k) => k + 1);
+    setInvoiceDrawerOpen(true);
+    await logInvoiceDraftCreated(offer.draft);
+    notify("Aşı uygulaması için fatura taslağı oluşturuldu.", "info");
+  }
+
+  async function handleSave(vaccine) {
     if (editingVaccine) {
-      updateVaccine({
+      const previousStatus = editingVaccine.status;
+      const saved = await updateVaccine({
         ...editingVaccine,
         ...vaccine,
       });
-    } else {
-      addVaccine(vaccine);
+      notify("Aşı kaydı güncellendi.");
+      setEditingVaccine(null);
+      setDrawerOpen(false);
+      await loadData();
+      await maybeOfferInvoiceDraft(saved, previousStatus);
+      return;
     }
 
-    loadData();
-
+    const saved = await addVaccine(vaccine);
+    notify("Aşı kaydı eklendi.");
     setEditingVaccine(null);
     setDrawerOpen(false);
+    await loadData();
+    await maybeOfferInvoiceDraft(saved, "");
   }
 
   function handleEdit(vaccine) {
@@ -54,17 +102,30 @@ function Vaccines() {
     setDrawerOpen(true);
   }
 
-  function handleDelete(id) {
-    if (!window.confirm("Aşı silinsin mi?")) return;
+  async function handleDelete(id) {
+    const confirmed = await confirm("Aşı silinsin mi?");
 
-    deleteVaccine(id);
+    if (!confirmed) return;
 
-    loadData();
+    await deleteVaccine(id);
+
+    await loadData();
+    notify("Aşı kaydı silindi.");
   }
 
   function handleClose() {
     setEditingVaccine(null);
     setDrawerOpen(false);
+  }
+
+  async function handleInvoiceSave(form) {
+    const { isDraftPreview, ...payload } = form;
+    void isDraftPreview;
+
+    await addInvoice(payload);
+    setInvoiceDrawerOpen(false);
+    setInvoiceDraft(null);
+    notify("Fatura eklendi.");
   }
 
   return (
@@ -78,18 +139,26 @@ function Vaccines() {
 
         <button
           className="add-btn"
-          onClick={() => setDrawerOpen(true)}
+          onClick={() => {
+            setEditingVaccine(null);
+            setNewFormKey((key) => key + 1);
+            setDrawerOpen(true);
+          }}
         >
           + Yeni Aşı
         </button>
       </div>
 
       <div className="customer-card">
-        <VaccineTable
-          vaccines={vaccines}
-          onEdit={handleEdit}
-          onDelete={handleDelete}
-        />
+        {vaccines.length === 0 ? (
+          <EmptyState message="Henüz kayıtlı aşı yok. + Yeni Aşı ile ekleyebilirsiniz." />
+        ) : (
+          <VaccineTable
+            vaccines={vaccines}
+            onEdit={handleEdit}
+            onDelete={handleDelete}
+          />
+        )}
       </div>
 
       <Drawer
@@ -102,11 +171,31 @@ function Vaccines() {
         onClose={handleClose}
       >
         <VaccineForm
+          key={editingVaccine?.id || `new-${newFormKey}`}
           vaccine={editingVaccine}
           animals={animals}
           isEditing={!!editingVaccine}
           onSave={handleSave}
         />
+      </Drawer>
+
+      <Drawer
+        open={invoiceDrawerOpen}
+        title="Aşı uygulaması için fatura taslağı oluşturuldu."
+        onClose={() => {
+          setInvoiceDrawerOpen(false);
+          setInvoiceDraft(null);
+        }}
+      >
+        {invoiceDraft && (
+          <InvoiceForm
+            key={`vaccine-invoice-${invoiceFormKey}`}
+            invoice={invoiceDraft}
+            animals={animals}
+            isEditing={false}
+            onSave={handleInvoiceSave}
+          />
+        )}
       </Drawer>
 
     </div>

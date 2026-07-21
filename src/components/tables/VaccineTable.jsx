@@ -4,11 +4,19 @@ import {
   IconButton,
   Tooltip,
   Chip,
+  Typography,
 } from "@mui/material";
 import { useNavigate } from "react-router-dom";
 
 import EditIcon from "@mui/icons-material/Edit";
 import DeleteIcon from "@mui/icons-material/Delete";
+
+import {
+  DATA_GRID_HEIGHT,
+  DATA_GRID_PAGE_SIZE_OPTIONS,
+  DATA_GRID_INITIAL_PAGINATION,
+  dataGridSx,
+} from "../../utils/dataGridDefaults";
 
 function VaccineTable({
   vaccines = [],
@@ -28,12 +36,22 @@ function VaccineTable({
       headerName: "Hayvan",
       flex: 1,
       minWidth: 160,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "ownerName",
       headerName: "Sahibi",
       flex: 1,
       minWidth: 180,
+      renderCell: (params) => (
+        <Typography noWrap title={params.value} sx={{ width: "100%" }}>
+          {params.value}
+        </Typography>
+      ),
     },
     {
       field: "vaccineName",
@@ -78,7 +96,7 @@ function VaccineTable({
     {
       field: "actions",
       headerName: "İşlemler",
-      width: 120,
+      width: 140,
       sortable: false,
       filterable: false,
       renderCell: (params) => (
@@ -92,7 +110,7 @@ function VaccineTable({
                 onEdit?.(params.row);
               }}
             >
-              <EditIcon />
+              <EditIcon fontSize="small" />
             </IconButton>
           </Tooltip>
 
@@ -105,7 +123,7 @@ function VaccineTable({
                 onDelete?.(params.row.id);
               }}
             >
-              <DeleteIcon />
+              <DeleteIcon fontSize="small" />
             </IconButton>
           </Tooltip>
         </>
@@ -114,23 +132,18 @@ function VaccineTable({
   ];
 
   return (
-    <Box sx={{ height: 600, width: "100%" }}>
+    <Box sx={{ height: DATA_GRID_HEIGHT, width: "100%" }}>
       <DataGrid
         rows={rows}
         columns={columns}
         density="comfortable"
         disableRowSelectionOnClick
-        pageSizeOptions={[5, 10, 20]}
-        initialState={{
-          pagination: {
-            paginationModel: {
-              pageSize: 10,
-            },
-          },
-        }}
+        pageSizeOptions={DATA_GRID_PAGE_SIZE_OPTIONS}
+        initialState={DATA_GRID_INITIAL_PAGINATION}
         onRowDoubleClick={(params) =>
           navigate(`/hayvanlar/${params.row.animalId}`)
         }
+        sx={dataGridSx}
       />
     </Box>
   );

@@ -1,43 +1,26 @@
-import {
-  Chart as ChartJS,
-  ArcElement,
-  Tooltip,
-  Legend,
-} from "chart.js";
+import { useEffect, useState } from "react";
 
-import { Pie } from "react-chartjs-2";
-
+import PieChart from "./PieChart";
 import { getAnimals } from "../../services/animalService";
 
-ChartJS.register(
-  ArcElement,
-  Tooltip,
-  Legend
-);
-
 function AnimalSpeciesChart() {
-  const animals = getAnimals();
+  const [labels, setLabels] = useState([]);
+  const [data, setData] = useState([]);
 
-  const counts = {};
+  useEffect(() => {
+    getAnimals().then((animals) => {
+      const counts = {};
 
-  animals.forEach((animal) => {
-    counts[animal.species] =
-      (counts[animal.species] || 0) + 1;
-  });
+      animals.forEach((animal) => {
+        counts[animal.species] = (counts[animal.species] || 0) + 1;
+      });
 
-  const data = {
-    labels: Object.keys(counts),
+      setLabels(Object.keys(counts));
+      setData(Object.values(counts));
+    });
+  }, []);
 
-    datasets: [
-      {
-        data: Object.values(counts),
-      },
-    ],
-  };
-
-  return (
-    <Pie data={data} />
-  );
+  return <PieChart labels={labels} data={data} />;
 }
 
 export default AnimalSpeciesChart;

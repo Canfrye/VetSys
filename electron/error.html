@@ -1,0 +1,80 @@
+<!DOCTYPE html>
+<html lang="tr">
+  <head>
+    <meta charset="UTF-8" />
+    <meta http-equiv="Content-Security-Policy" content="default-src 'self'; style-src 'unsafe-inline'; script-src 'unsafe-inline'" />
+    <title>VetSys — Hata</title>
+    <style>
+      * { box-sizing: border-box; margin: 0; padding: 0; }
+      body {
+        font-family: "Segoe UI", Inter, Arial, sans-serif;
+        background: #0f172a;
+        color: #f8fafc;
+        height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      .card {
+        width: min(460px, 92vw);
+        background: #1e293b;
+        border-radius: 12px;
+        padding: 28px 24px;
+        border: 1px solid #334155;
+      }
+      h1 { font-size: 20px; margin-bottom: 10px; }
+      p { font-size: 14px; line-height: 1.5; color: #cbd5e1; margin-bottom: 8px; }
+      .detail {
+        margin: 14px 0 20px;
+        padding: 12px;
+        background: #0f172a;
+        border-radius: 8px;
+        font-size: 12px;
+        color: #fca5a5;
+        white-space: pre-wrap;
+        word-break: break-word;
+        max-height: 140px;
+        overflow: auto;
+      }
+      .actions { display: flex; gap: 10px; flex-wrap: wrap; }
+      button {
+        border: 0;
+        border-radius: 8px;
+        padding: 10px 14px;
+        font-weight: 600;
+        cursor: pointer;
+        font-size: 13px;
+      }
+      .primary { background: #14b8a6; color: #042f2e; }
+      .secondary { background: #334155; color: #f8fafc; }
+      .danger { background: #7f1d1d; color: #fecaca; }
+    </style>
+  </head>
+  <body>
+    <div class="card">
+      <h1>VetSys başlatılamadı</h1>
+      <p>Sunucu servisi açılamıyor.</p>
+      <div class="detail" id="detail">Bilinmeyen hata</div>
+      <div class="actions">
+        <button class="primary" id="retry">Yeniden Dene</button>
+        <button class="secondary" id="logs">Günlükleri Aç</button>
+        <button class="danger" id="quit">Çıkış</button>
+      </div>
+    </div>
+    <script>
+      const params = new URLSearchParams(location.search);
+      document.getElementById("detail").textContent =
+        params.get("message") || "Bilinmeyen hata";
+
+      document.getElementById("retry").onclick = () => {
+        window.vetsysError?.retry?.();
+      };
+      document.getElementById("logs").onclick = () => {
+        window.vetsysError?.openLogs?.();
+      };
+      document.getElementById("quit").onclick = () => {
+        window.vetsysError?.quit?.();
+      };
+    </script>
+  </body>
+</html>

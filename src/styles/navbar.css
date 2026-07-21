@@ -1,72 +1,110 @@
-.navbar{
-    height:75px;
-    background:white;
-
-    display:flex;
-    justify-content:space-between;
-    align-items:center;
-
-    padding:0 30px;
-
-    border-bottom:1px solid #E5E7EB;
-
-    position:sticky;
-    top:0;
-    z-index:100;
-
-    box-shadow:0 3px 10px rgba(0,0,0,.04);
+.navbar {
+  height: 75px;
+  background: white;
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 16px;
+  padding: 0 30px;
+  border-bottom: 1px solid #e5e7eb;
+  position: sticky;
+  top: 0;
+  z-index: 90;
+  box-shadow: 0 3px 10px rgba(0, 0, 0, 0.04);
+  min-width: 0;
 }
 
-.navbar-left{
-    display:flex;
-    flex-direction:column;
+.navbar-left {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  flex: 1;
 }
 
-.navbar-left h2{
-    margin:0;
-    color:#2563EB;
+.navbar-left h2 {
+  margin: 0;
+  color: #2563eb;
+  font-size: 20px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.navbar-left span{
-    font-size:13px;
-    color:#6B7280;
+.navbar-left span {
+  font-size: 13px;
+  color: #6b7280;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
-.navbar-right{
-    display:flex;
-    align-items:center;
-    gap:30px;
+.navbar-right {
+  display: flex;
+  align-items: center;
+  gap: 24px;
+  flex-shrink: 0;
 }
 
-.navbar-time{
-    display:flex;
-    flex-direction:column;
-    text-align:right;
+.navbar-time {
+  display: flex;
+  flex-direction: column;
+  text-align: right;
 }
 
-.navbar-time strong{
-    font-size:18px;
+.navbar-time strong {
+  font-size: 16px;
 }
 
-.navbar-time small{
-    color:#6B7280;
+.navbar-time small {
+  color: #6b7280;
 }
 
-.navbar-user{
-    display:flex;
-    align-items:center;
-    gap:10px;
+.navbar-user {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  min-width: 0;
 }
 
-.navbar-user svg{
-    color:#2563EB;
+.navbar-user svg {
+  color: #2563eb;
+  flex-shrink: 0;
 }
 
-.navbar-user div{
-    display:flex;
-    flex-direction:column;
+.navbar-user div {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+  max-width: 160px;
 }
 
-.navbar-user small{
-    color:#6B7280;
+.navbar-user strong,
+.navbar-user small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.navbar-user small {
+  color: #6b7280;
+}
+
+@media (max-width: 900px) {
+  .navbar {
+    padding: 0 16px;
+  }
+
+  .navbar-time {
+    display: none;
+  }
+
+  .navbar-user div {
+    max-width: 110px;
+  }
+}
+
+@media (max-width: 600px) {
+  .navbar-user div {
+    display: none;
+  }
 }
