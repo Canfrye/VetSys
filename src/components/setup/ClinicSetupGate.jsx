@@ -1,29 +1,47 @@
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useContext, useEffect, useState } from "react";
 
 import ClinicSetupWizard from "./ClinicSetupWizard";
 import { getSettings, saveSettings } from "../../services/settingsService";
 import { getUsers } from "../../services/authService";
 import { needsClinicSetup } from "../../utils/clinicIdentity";
-import {
-  OPEN_CLINIC_SETUP_EVENT,
-} from "../../utils/clinicSetupEvents";
+import { OPEN_CLINIC_SETUP_EVENT } from "../../utils/clinicSetupEvents";
 import { createAuditLog } from "../../services/auditLogService";
 import { AUDIT_ACTIONS, AUDIT_MODULES } from "../../utils/auditLog";
-import { useNotification } from "../../hooks/useNotification";
+import NotificationContext from "../../context/NotificationContext";
+
+const EMPTY_SETTINGS = Object.freeze({});
+
+function safeNotify(notifyFn, message, severity = "info") {
+  try {
+    if (typeof notifyFn === "function") {
+      notifyFn(message, severity);
+      return;
+    }
+  } catch {
+    // Bildirim katmanı yoksa uygulamayı düşürme
+  }
+  if (severity === "error") {
+    console.error("[VetSys]", message);
+  }
+}
 
 /**
- * İlk açılışta klinik adı yoksa sihirbazı zorunlu açar.
- * Ayarlar'dan OPEN_CLINIC_SETUP_EVENT ile tekrar açılabilir.
+ * İlk açılışta klinik adı yoksa sihirbazı açar.
+ * NotificationProvider dışında da güvenle çalışır (beyaz ekran yok).
  */
 export default function ClinicSetupGate({ children }) {
-  const { notify } = useNotification();
+  const notification = useContext(NotificationContext);
+  const notify = notification?.notify;
+
   const [ready, setReady] = useState(false);
-  const [settings, setSettings] = useState(null);
+  const [settings, setSettings] = useState(EMPTY_SETTINGS);
   const [users, setUsers] = useState([]);
   const [forced, setForced] = useState(false);
   const [wizardKey, setWizardKey] = useState(0);
 
-  const needsSetup = needsClinicSetup(settings);
+  const safeSettings =
+    settings && typeof settings === "object" ? settings : EMPTY_SETTINGS;
+  const needsSetup = needsClinicSetup(safeSettings);
   const open = Boolean(ready && (needsSetup || forced));
 
   useEffect(() => {
@@ -31,12 +49,23 @@ export default function ClinicSetupGate({ children }) {
 
     (async () => {
       try {
-        const [s, u] = await Promise.all([getSettings(), getUsers()]);
+        const [rawSettings, rawUsers] = await Promise.all([
+          getSettings().catch(() => null),
+          getUsers().catch(() => []),
+        ]);
+
         if (cancelled) return;
-        setSettings(s);
-        setUsers(u);
+
+        setSettings(
+          rawSettings && typeof rawSettings === "object"
+            ? rawSettings
+            : EMPTY_SETTINGS
+        );
+        setUsers(Array.isArray(rawUsers) ? rawUsers : []);
       } catch {
-        // Ayarlar okunamasa bile uygulamayı engelleme
+        if (cancelled) return;
+        setSettings(EMPTY_SETTINGS);
+        setUsers([]);
       } finally {
         if (!cancelled) setReady(true);
       }
@@ -59,25 +88,36 @@ export default function ClinicSetupGate({ children }) {
 
   const handleSave = useCallback(
     async (payload) => {
-      const saved = await saveSettings(payload);
-      setSettings(saved);
-      setForced(false);
+      try {
+        const saved = await saveSettings(payload || {});
+        setSettings(
+          saved && typeof saved === "object" ? saved : payload || EMPTY_SETTINGS
+        );
+        setForced(false);
 
-      await createAuditLog({
-        module: AUDIT_MODULES.SETTINGS,
-        action: AUDIT_ACTIONS.CHANGED,
-        description: "Klinik kurulum sihirbazı tamamlandı",
-      });
+        await createAuditLog({
+          module: AUDIT_MODULES.SETTINGS,
+          action: AUDIT_ACTIONS.CHANGED,
+          description: "Klinik kurulum sihirbazı tamamlandı",
+        });
 
-      notify("Klinik bilgileri kaydedildi.");
-      window.dispatchEvent(new Event("storage"));
+        safeNotify(notify, "Klinik bilgileri kaydedildi.");
+        window.dispatchEvent(new Event("storage"));
+      } catch (error) {
+        safeNotify(
+          notify,
+          error?.message || "Klinik bilgileri kaydedilemedi.",
+          "error"
+        );
+      }
     },
     [notify]
   );
 
   function handleClose() {
-    if (needsClinicSetup(settings) && !forced) {
-      notify(
+    if (needsClinicSetup(safeSettings) && !forced) {
+      safeNotify(
+        notify,
         "Klinik adı girilene kadar kurulum sihirbazı tekrar açılır.",
         "info"
       );
@@ -85,22 +125,21 @@ export default function ClinicSetupGate({ children }) {
     setForced(false);
   }
 
-  if (!ready) {
-    return null;
-  }
-
+  // Yükleme sırasında bile çocukları göster — beyaz ekran yok
   return (
     <>
       {children}
-      <ClinicSetupWizard
-        key={wizardKey}
-        open={open}
-        allowCancel={!needsSetup || forced}
-        initialSettings={settings || {}}
-        users={users}
-        onClose={handleClose}
-        onSave={handleSave}
-      />
+      {ready && (
+        <ClinicSetupWizard
+          key={wizardKey}
+          open={open}
+          allowCancel={!needsSetup || forced}
+          initialSettings={safeSettings}
+          users={Array.isArray(users) ? users : []}
+          onClose={handleClose}
+          onSave={handleSave}
+        />
+      )}
     </>
   );
 }

@@ -9,7 +9,7 @@ export default defineConfig([
   // bir proje olduğu için bu (React/Vite odaklı) frontend lint yapılandırması
   // kapsamı dışındadır (bkz. backend/README.md).
   // electron/ main process de ayrı Node ortamıdır.
-  globalIgnores(['dist', 'backend', 'electron']),
+  globalIgnores(['dist', 'backend', 'electron', 'release']),
   {
     files: ['vite.config.js'],
     languageOptions: {

@@ -30,7 +30,11 @@ export const DEFAULT_WORKING_HOURS_SCHEDULE = {
 export function normalizeWorkingHoursSchedule(schedule) {
   const base = DEFAULT_WORKING_HOURS_SCHEDULE;
   if (!schedule || typeof schedule !== "object") {
-    return structuredClone(base);
+    return {
+      weekday: { ...base.weekday },
+      saturday: { ...base.saturday },
+      sunday: { ...base.sunday },
+    };
   }
 
   const mergeDay = (key) => {
